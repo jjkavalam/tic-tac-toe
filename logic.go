@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 
+const UNKNOWN = 0
 const Winning = 1
 const Losing = 2
 const Drawing = 3
@@ -47,23 +48,28 @@ func (s State) GetComputerMove() State {
 // The above is essentially the Minimax algorithm.
 //
 func (s State) Analyze() (int, State) {
-	// base case
-	// if already won / lost / drawn
-	// then the next state is the same
-	if s.HasWon() {
-		return Winning, s
-	} else if s.HasLost() {
-		return Losing, s
-	} else if s.IsFull() {
-		return Drawing, s
-	}
-
 	if s.WhoMovesNext != Me {
 		panic("ask me only when it is my move next")
 	}
 
+	// base case
+	// if already won / lost / drawn
+	// then the next state is the same
+	outcome := s.GetOutcome()
+	if outcome != UNKNOWN {
+		return outcome, s
+	}
+
 	// let us look at each possible move
 	nextStates := s.NextStates()
+
+	if s.NumMovesSoFar == 8 {
+		// if 8 moves have been made already, that means there is only one more move left in this game
+		// Hence, there is actually one possible move that we can make;
+		// and the resulting position can be directly analyzed.
+		nextState := nextStates[0]
+		return nextState.GetOutcome(), nextState
+	}
 
 	var losingMove State
 
@@ -73,67 +79,48 @@ func (s State) Analyze() (int, State) {
 	var foundWin bool
 	var winningMove State
 
-	if s.NumMovesSoFar == 8 {
-		for _, s := range nextStates {
-			// there are no opponent moves to check
-			outcome, _ := s.Analyze()
+	for _, s := range nextStates {
+		// for each move, let us play the opponent
+		opponentMoves := s.NextStates()
 
+		opponentCanDraw := false
+		opponentCanWin := false
+
+		// i.e. from all possible moves the opponent can make
+		// check if there are any moves that guarantee our defeat.
+		// Also, if there are moves where he can draw, take note of that also.
+		for _, s2 := range opponentMoves {
+			outcome, _ := s2.Analyze()
 			switch outcome {
-			case Winning:
-				foundWin = true
-				winningMove = s
-			case Drawing:
-				foundDraw = true
-				drawingMove = s
 			case Losing:
-				losingMove = s
+				opponentCanWin = true
+			case Drawing:
+				opponentCanDraw = true
 			}
 		}
-	} else {
-		for _, s := range nextStates {
 
-			// for each move, let us play the opponent
-			opponentMoves := s.NextStates()
-
-			opponentCouldDraw := false
-			opponentCanWin := false
-
-			// i.e. from all possible moves the opponent can make
-			// check if there moves where we will lose
-			// if there moves where he can draw, record that also
-			for _, s2 := range opponentMoves {
-				outcome, _ := s2.Analyze()
-				switch outcome {
-				case Losing:
-					opponentCanWin = true
-				case Drawing:
-					opponentCouldDraw = true
-				}
-			}
-
-			// the opponent will surely try to win, if not at least try to draw
-			if opponentCanWin {
-				// since there is a way for the opponent to guarantee his victory
-				// we should not make this move (unless we are accepting defeat)
-				losingMove = s
-				continue
-			} else if opponentCouldDraw {
-				// there is no way the opponent can win, but he can still draw it
-				// So it is not ideal, but we will still keep it as an option
-				foundDraw = true
-				drawingMove = s
-			} else {
-				// there is no way the opponent can win or draw this;
-				// now, that's the move we want to make !
-				foundWin = true
-				winningMove = s
-			}
+		// the opponent will surely try to win, if not at least try to draw
+		if opponentCanWin {
+			// since there is a way for the opponent to guarantee his victory
+			// s is a bad move (unless we have no choice, but to accept defeat)
+			losingMove = s
+			continue
+		} else if opponentCanDraw {
+			// there is no way the opponent can win; but he can still draw it.
+			// So it is not ideal, but we will still keep it as an option
+			foundDraw = true
+			drawingMove = s
+		} else {
+			// there is no way the opponent can win or draw this;
+			// now, this is the kind of move we want to make !
+			foundWin = true
+			winningMove = s
 		}
 	}
 
 	// if we found a winning move, go for it;
 	// it not, go for the drawing move
-	// if neither, what is else is left to do, accept defeat !
+	// if neither, what else is left to do, accept defeat !
 	if foundWin {
 		return Winning, winningMove
 	} else if foundDraw {

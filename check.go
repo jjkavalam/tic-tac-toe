@@ -1,11 +1,16 @@
 package main
 
-func (s State) HasWon() bool {
-	return s.HasRowColOrDiagonal(Me)
-}
-
-func (s State) HasLost() bool {
-	return s.HasRowColOrDiagonal(Opponent)
+func (s State) GetOutcome() int {
+	if s.HasRowColOrDiagonal(Me) {
+		return Winning
+	}
+	if s.HasRowColOrDiagonal(Opponent) {
+		return Losing
+	}
+	if s.IsFull() {
+		return Drawing
+	}
+	return UNKNOWN
 }
 
 func (s State) HasRowColOrDiagonal(piece int) bool {
