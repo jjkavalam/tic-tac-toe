@@ -10,17 +10,17 @@ func (s State) GetComputerMove() State {
 	if s.WhoMovesNext != Me {
 		panic("it is not my turn")
 	}
-	t, s := s.Analyze()
-	types := map[int]string{
+	p, s := s.Analyze()
+	prediction := map[int]string{
 		Winning: "Winning",
 		Losing:  "Losing",
 		Drawing: "Drawing",
 	}
-	fmt.Println("Found move of type", types[t])
+	fmt.Println("Found move of type", prediction[p])
 	fmt.Println(s)
-	if t == Winning {
+	if p == Winning {
 		fmt.Println("I will win no matter what !")
-	} else if t == Losing {
+	} else if p == Losing {
 		fmt.Println("I accept defeat")
 	}
 	return s
