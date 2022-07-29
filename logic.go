@@ -10,7 +10,7 @@ func (s State) GetComputerMove() State {
 	if s.WhoMovesNext != Me {
 		panic("it is not my turn")
 	}
-	t, s := s.Type()
+	t, s := s.Analyze()
 	types := map[int]string{
 		Winning: "Winning",
 		Losing:  "Losing",
@@ -26,7 +26,27 @@ func (s State) GetComputerMove() State {
 	return s
 }
 
-func (s State) Type() (int, State) {
+// Analyze thinks like a player who wants to win and evaluates whether the current state can lead to a
+// Winning / Losing / Drawing game for Me, assuming the Opponent plays his best game.
+// Since the analysis invariably involves considering the various moves, it can also return the new State
+// after the best possible move has been made.
+//
+// Analyze is expected to be called when it is player Me's turn.
+//
+// If the board is already won/lost/full it returns immediately and the new state is simply the current state itself.
+// In this case, the returned prediction is also the actual outcome.
+//
+// To compute the "best" move, we look at all possible moves Me can make in the given state.
+// For each of these moves, we try out each possible move that the Opponent can make.
+// We Analyze (recursively) the resulting State to evaluate how good our original move was.
+// The rules of evaluation are as follows:
+// - if it is somehow possible for the  Opponent to put the game into a Losing situation; then the move is bad.
+// - if the Opponent can never put the game into a Losing situation; but can make it Drawing; then the move could be considered.
+// - if the Opponent can never make the game Losing or Drawing; then we have a winning move, and we will take it !
+//
+// The above is essentially the Minimax algorithm.
+//
+func (s State) Analyze() (int, State) {
 	// base case
 	// if already won / lost / drawn
 	// then the next state is the same
@@ -56,7 +76,7 @@ func (s State) Type() (int, State) {
 	if s.NumMovesSoFar == 8 {
 		for _, s := range nextStates {
 			// there are no opponent moves to check
-			outcome, _ := s.Type()
+			outcome, _ := s.Analyze()
 
 			switch outcome {
 			case Winning:
@@ -82,7 +102,7 @@ func (s State) Type() (int, State) {
 			// check if there moves where we will lose
 			// if there moves where he can draw, record that also
 			for _, s2 := range opponentMoves {
-				outcome, _ := s2.Type()
+				outcome, _ := s2.Analyze()
 				switch outcome {
 				case Losing:
 					opponentCanWin = true
