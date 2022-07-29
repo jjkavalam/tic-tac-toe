@@ -7,17 +7,18 @@ const Winning = 1
 const Losing = 2
 const Drawing = 3
 
+var predictions = map[int]string{
+	Winning: "Winning",
+	Losing:  "Losing",
+	Drawing: "Drawing",
+}
+
 func (s State) GetComputerMove() State {
 	if s.WhoMovesNext != Me {
 		panic("it is not my turn")
 	}
 	p, s := s.Analyze()
-	prediction := map[int]string{
-		Winning: "Winning",
-		Losing:  "Losing",
-		Drawing: "Drawing",
-	}
-	fmt.Println("Found move of type", prediction[p])
+	fmt.Println("Found move with predicted:", predictions[p])
 	fmt.Println(s)
 	if p == Winning {
 		fmt.Println("I will win no matter what !")
